@@ -88,8 +88,13 @@ npm ci
 log "Generating Prisma client"
 npm run prisma:generate
 
-log "Applying database migrations"
-npx prisma migrate deploy
+if [[ -d "prisma/migrations" ]] && find "prisma/migrations" -mindepth 1 -maxdepth 1 -type d | read -r _; then
+  log "Applying database migrations"
+  npx prisma migrate deploy
+else
+  log "No Prisma migrations found. Syncing schema with prisma db push"
+  npx prisma db push
+fi
 
 log "Building application"
 npm run build
