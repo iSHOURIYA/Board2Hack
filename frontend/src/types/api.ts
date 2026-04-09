@@ -1,4 +1,4 @@
-import { PlayerDetails } from './game';
+import type { PlayerDetails } from './game';
 
 export interface HealthResponse {
   status: string;

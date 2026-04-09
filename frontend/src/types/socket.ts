@@ -1,4 +1,4 @@
-import { CardId, TikiId, SecretCards } from './game';
+import type { CardId, TikiId, SecretCards } from './game';
 
 export interface RoomJoinedPayload {
   roomId: string;

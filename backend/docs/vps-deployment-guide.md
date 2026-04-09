@@ -217,6 +217,43 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
+### IP-only deployment
+
+If you want to skip the domain and use the VPS IP directly, make the backend the default Nginx server for port 80:
+
+```bash
+sudo tee /etc/nginx/sites-available/tiki-topple-backend > /dev/null <<'EOF'
+server {
+  listen 80 default_server;
+  listen [::]:80 default_server;
+  server_name _;
+
+  location / {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+}
+EOF
+
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo ln -sf /etc/nginx/sites-available/tiki-topple-backend /etc/nginx/sites-enabled/tiki-topple-backend
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+Then verify by IP:
+
+```bash
+curl http://168.144.71.133/health
+```
+
+If you see a 404 from Nginx, your default server block is still taking priority. Recheck `nginx -T` and confirm the backend server block is the `default_server` on port 80.
+
 ### Useful Nginx commands
 
 ```bash

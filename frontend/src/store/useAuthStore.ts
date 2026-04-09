@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { ProfileResponse } from '../types/api';
+import type { ProfileResponse } from '../types/api';
 
 interface AuthState {
   token: string | null;

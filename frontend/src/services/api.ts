@@ -1,4 +1,4 @@
-import {
+import type {
   LoginResponse,
   ProfileResponse,
   RegisterResponse,
@@ -13,8 +13,13 @@ import {
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 class ApiError extends Error {
-  constructor(public status: number, public message: string, public details?: Record<string, string>) {
+  public status: number;
+  public details?: Record<string, string>;
+
+  constructor(status: number, message: string, details?: Record<string, string>) {
     super(message);
+    this.status = status;
+    this.details = details;
   }
 }
 
