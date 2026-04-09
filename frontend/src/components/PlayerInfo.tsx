@@ -57,22 +57,25 @@ export const PlayerInfo: React.FC<Props> = ({ boardState, myUserId, myUsername }
           </h4>
           <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Top</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Top (9 pts)</div>
               <div style={{ background: `var(--tiki-${boardState.players[myUserId].secret!.top})`, width: '40px', height: '40px', borderRadius: '4px', display: 'grid', placeItems: 'center', fontWeight: 'bold', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
                 {boardState.players[myUserId].secret!.top}
               </div>
+              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '4px' }}>if 1st</div>
             </div>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Mid</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Mid (5 pts)</div>
               <div style={{ background: `var(--tiki-${boardState.players[myUserId].secret!.middle})`, width: '40px', height: '40px', borderRadius: '4px', display: 'grid', placeItems: 'center', fontWeight: 'bold', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
                 {boardState.players[myUserId].secret!.middle}
               </div>
+              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '4px' }}>if 1st-2nd</div>
             </div>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Bot</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Bot (2 pts)</div>
               <div style={{ background: `var(--tiki-${boardState.players[myUserId].secret!.bottom})`, width: '40px', height: '40px', borderRadius: '4px', display: 'grid', placeItems: 'center', fontWeight: 'bold', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
                 {boardState.players[myUserId].secret!.bottom}
               </div>
+              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '4px' }}>if 1st-3rd</div>
             </div>
           </div>
         </div>

@@ -82,7 +82,8 @@ export const GamePage: React.FC = () => {
       return;
     }
 
-    const payload = { roomId, card: selectedCard, targetTikiId: selectedTiki };
+    const targetTikiId = requiresTarget ? selectedTiki : undefined;
+    const payload = { roomId, card: selectedCard, targetTikiId };
     socketService.playCard(payload);
     setPendingMove(payload);
     setSelectedCard(undefined);
@@ -143,8 +144,15 @@ export const GamePage: React.FC = () => {
                   </div>
                )}
                {boardState.roundComplete && !boardState.gameComplete && (
-                  <div style={{ textAlign:'center', backgroundColor: 'var(--accent-secondary)', color: 'white', padding: '1rem', borderRadius: '8px', marginBottom: '2rem', fontWeight: 'bold' }}>
-                    Round {boardState.roundNumber} Complete.
+                  <div style={{ textAlign:'center', backgroundColor: 'var(--accent-secondary)', color: 'white', padding: '1rem', borderRadius: '8px', marginBottom: '2rem', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+                    <div>Round {boardState.roundNumber} Complete!</div>
+                    <button 
+                      className="glass-button" 
+                      onClick={handleStartGame}
+                      style={{ background: 'white', color: 'black', padding: '0.5rem 2rem' }}
+                    >
+                      Start Round {boardState.roundNumber + 1}
+                    </button>
                   </div>
                )}
 
@@ -174,6 +182,7 @@ export const GamePage: React.FC = () => {
                 selectedCard={selectedCard}
                 onSelectCard={setSelectedCard}
                 disabled={!isMyTurn || !!pendingMove}
+                cardsPlayedCount={boardState.cardsPlayedCount}
               />
             </div>
           </div>
