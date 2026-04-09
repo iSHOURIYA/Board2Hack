@@ -48,10 +48,19 @@ export const GamePage: React.FC = () => {
       setTimeout(() => setErrorEvent(null), 3000);
     });
 
-    // Join room
-    socketService.joinRoom({ roomId });
+    const handleConnect = () => {
+      socketService.joinRoom({ roomId });
+    };
+    
+    socketService.onConnect(handleConnect);
+    
+    // Join immediately if already connected, else it awaits the connect event
+    if (socketService.isConnected) {
+      socketService.joinRoom({ roomId });
+    }
 
     return () => {
+      socketService.offConnect(handleConnect);
       socketService.off('room_joined', setRoomJoinedData as any);
       socketService.off('state_update', setBoardState as any);
       socketService.off('error_event', setErrorEvent as any);
@@ -65,7 +74,7 @@ export const GamePage: React.FC = () => {
   };
 
   const handlePlayCard = () => {
-    if (!roomId || !selectedCard || !profile) return;
+    if (!roomId || !selectedCard || !profile || pendingMove) return;
     
     const requiresTarget = selectedCard !== 'TIKI_TOAST';
     if (requiresTarget && selectedTiki === undefined) {

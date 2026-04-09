@@ -72,6 +72,14 @@ class SocketService {
   off<Ev extends keyof ServerToClientEvents>(event: Ev, listener: ServerToClientEvents[Ev]) {
     this.socket?.off(event, listener as any);
   }
+
+  onConnect(listener: () => void) {
+    this.socket?.on('connect', listener);
+  }
+
+  offConnect(listener: () => void) {
+    this.socket?.off('connect', listener);
+  }
 }
 
 export const socketService = new SocketService();
