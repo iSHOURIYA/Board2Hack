@@ -1,0 +1,15 @@
+{
+  "name": "unfair-board",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.8.1",
+  "scripts": {
+    "dev": "pnpm --filter @unfair-board/shared-types build && pnpm --filter @unfair-board/game-engine build && pnpm -r --parallel --filter @unfair-board/server --filter @unfair-board/web dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}
