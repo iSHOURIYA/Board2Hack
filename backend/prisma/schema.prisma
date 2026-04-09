@@ -1,0 +1,112 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoomStatus {
+  WAITING
+  IN_PROGRESS
+  FINISHED
+  CANCELLED
+}
+
+enum CardType {
+  TIKI_UP_1
+  TIKI_UP_2
+  TIKI_UP_3
+  TIKI_TOPPLE
+  TIKI_TOAST
+}
+
+model User {
+  id           String       @id @default(cuid())
+  email        String       @unique
+  username     String       @unique
+  passwordHash String
+  gamesPlayed  Int          @default(0)
+  wins         Int          @default(0)
+  totalScore   Int          @default(0)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  hostedRooms  Room[]       @relation("HostedRooms")
+  roomPlayers  RoomPlayer[]
+  moves        MoveLog[]
+  gamePlayers  GamePlayer[]
+}
+
+model Room {
+  id            String       @id @default(cuid())
+  hostId        String
+  name          String
+  isPrivate     Boolean      @default(false)
+  passwordHash  String?
+  maxPlayers    Int
+  region        String       @default("global")
+  status        RoomStatus   @default(WAITING)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  host          User         @relation("HostedRooms", fields: [hostId], references: [id], onDelete: Cascade)
+  players       RoomPlayer[]
+  gameSessions  GameSession[]
+  moves         MoveLog[]
+
+  @@index([status])
+  @@index([region])
+}
+
+model RoomPlayer {
+  id        String   @id @default(cuid())
+  roomId    String
+  userId    String
+  joinedAt  DateTime @default(now())
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId])
+}
+
+model GameSession {
+  id            String       @id @default(cuid())
+  roomId        String
+  roundNumber   Int          @default(1)
+  state         Json
+  startedAt     DateTime     @default(now())
+  finishedAt    DateTime?
+  room          Room         @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  moves         MoveLog[]
+  players       GamePlayer[]
+
+  @@index([roomId])
+}
+
+model GamePlayer {
+  id            String      @id @default(cuid())
+  gameSessionId String
+  userId        String
+  finalScore    Int         @default(0)
+  isWinner      Boolean     @default(false)
+  gameSession   GameSession @relation(fields: [gameSessionId], references: [id], onDelete: Cascade)
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([gameSessionId, userId])
+}
+
+model MoveLog {
+  id            String      @id @default(cuid())
+  gameSessionId String
+  roomId        String
+  playerId      String
+  turnNumber    Int
+  cardPlayed    CardType
+  targetTikiId  Int?
+  createdAt     DateTime    @default(now())
+  gameSession   GameSession @relation(fields: [gameSessionId], references: [id], onDelete: Cascade)
+  room          Room        @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  player        User        @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([roomId, turnNumber])
+}
