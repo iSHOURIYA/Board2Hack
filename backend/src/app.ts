@@ -5,7 +5,7 @@ import jwt from "@fastify/jwt";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
 import { env } from "./config/env";
-import { logger } from "./utils/logger";
+import { loggerOptions } from "./utils/logger";
 import { registerAuthRoutes } from "./routes/auth";
 import { registerProfileRoutes } from "./routes/profile";
 import { registerLeaderboardRoutes } from "./routes/leaderboards";
@@ -15,7 +15,7 @@ import { prisma } from "./config/prisma";
 import { redis } from "./config/redis";
 
 export const buildApp = async (): Promise<FastifyInstance> => {
-  const app = Fastify({ logger });
+  const app = Fastify({ logger: loggerOptions });
 
   await app.register(cors, { origin: true });
   await app.register(sensible);
