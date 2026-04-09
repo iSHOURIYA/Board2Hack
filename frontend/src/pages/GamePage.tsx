@@ -82,8 +82,8 @@ export const GamePage: React.FC = () => {
 
   if (!roomId || !profile) return null;
 
-  const isMyTurn = boardState?.currentPlayerId === profile.username;
-  const myHand = boardState?.players[profile.username]?.hand || [];
+  const isMyTurn = boardState?.currentPlayerId === profile.id;
+  const myHand = boardState?.players[profile.id]?.hand || [];
 
   return (
     <div className="page-container">
@@ -170,7 +170,7 @@ export const GamePage: React.FC = () => {
           </div>
 
           <div>
-             <PlayerInfo boardState={boardState} myUserId={profile.username} />
+             <PlayerInfo boardState={boardState} myUserId={profile.id} myUsername={profile.username} />
           </div>
         </div>
       )}

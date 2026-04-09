@@ -5,9 +5,10 @@ import { User, Trophy, Star } from 'lucide-react';
 interface Props {
   boardState: BoardState;
   myUserId: string;
+  myUsername: string;
 }
 
-export const PlayerInfo: React.FC<Props> = ({ boardState, myUserId }) => {
+export const PlayerInfo: React.FC<Props> = ({ boardState, myUserId, myUsername }) => {
   return (
     <div className="glass-panel" style={{ padding: '1.5rem', height: '100%' }}>
       <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -36,8 +37,8 @@ export const PlayerInfo: React.FC<Props> = ({ boardState, myUserId }) => {
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <User size={18} color={isCurrentTurn ? 'var(--accent-primary)' : 'var(--text-secondary)'} />
-                <span style={{ fontWeight: isMe ? 'bold' : 'normal', color: isCurrentTurn ? 'white' : 'var(--text-primary)' }}>
-                  {playerId} {isMe && '(You)'}
+                <span title={playerId} style={{ fontWeight: isMe ? 'bold' : 'normal', color: isCurrentTurn ? 'white' : 'var(--text-primary)' }}>
+                  {isMe ? `${myUsername} (You)` : `Player ${playerId.substring(Math.max(0, playerId.length - 4))}`}
                 </span>
               </div>
               

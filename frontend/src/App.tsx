@@ -1,13 +1,36 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Switch, Route, Redirect } from 'wouter';
 import { useAuthStore } from './store/useAuthStore';
+import { api } from './services/api';
 import { AuthPage } from './pages/AuthPage';
 import { LobbyPage } from './pages/LobbyPage';
 import { GamePage } from './pages/GamePage';
 import './index.css';
 
 const App: React.FC = () => {
-  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
+  const { isAuthenticated, profile, setProfile, logout } = useAuthStore();
+  const [loadingProfile, setLoadingProfile] = useState(isAuthenticated && !profile);
+
+  useEffect(() => {
+    if (isAuthenticated && !profile) {
+      api.profile()
+        .then(res => {
+          setProfile(res);
+        })
+        .catch(() => {
+          logout();
+        })
+        .finally(() => {
+          setLoadingProfile(false);
+        });
+    } else {
+      setLoadingProfile(false);
+    }
+  }, [isAuthenticated, profile, setProfile, logout]);
+
+  if (loadingProfile) {
+    return <div style={{ display: 'grid', placeItems: 'center', height: '100vh', color: 'var(--text-primary)' }}>Loading Profile...</div>;
+  }
 
   return (
     <div className="app-root">

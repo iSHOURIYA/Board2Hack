@@ -1,5 +1,5 @@
-export type CardId = string; // e.g. "TIKI_UP_1", "TIKI_UP_2", "TIKI_UP_3", "TIKI_TOAST", "TIKI_TUMBLE"
-export type TikiId = number;   // 1 to 9 typically
+export type CardId = 'TIKI_UP_1' | 'TIKI_UP_2' | 'TIKI_UP_3' | 'TIKI_TOPPLE' | 'TIKI_TOAST';
+export type TikiId = number;
 
 export interface SecretCards {
   top: TikiId;

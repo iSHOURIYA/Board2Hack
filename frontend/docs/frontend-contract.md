@@ -1,117 +1,79 @@
-# Frontend Contract
+# Frontend Integration Guide
 
-This document defines the backend behavior the frontend must follow to avoid desync, invalid actions, and avoidable runtime errors.
+This guide is the source of truth for integrating the frontend with the live backend.
 
-## Goals
+## 1. Base Configuration
 
-- Keep the frontend aligned with the live backend contract.
-- Make all requests and socket events predictable.
-- Expose clear error handling so the UI can show the correct user message.
-- Ensure the game remains server-authoritative.
+- Base URL (IP mode): http://168.144.71.133
+- REST prefix: /api/v1
+- Socket.IO path: /ws
+- Health endpoint: /health
 
-## Core Principles
+## 2. Core Integration Rules
 
-1. The server is the source of truth for game state.
-2. The frontend may optimistically animate, but it must always reconcile to server state.
-3. The frontend should never assume a move succeeded until the server emits the updated state.
-4. All gameplay actions must be blocked client-side if the UI already knows the action is invalid, but the backend still performs final validation.
-5. Every server error should be displayed in a user-facing way unless it is a low-level network failure.
+1. Backend is authoritative for game state.
+2. Frontend should not assume move success before server response.
+3. Frontend must send JSON with proper headers for REST calls.
+4. Frontend must send JWT for all protected routes and socket auth.
+5. Frontend should display backend validation and game errors directly.
 
-## Environment Assumptions
+## 3. Auth APIs
 
-The backend exposes:
+### POST /api/v1/auth/register
 
-- HTTP on the configured `PORT`
-- Socket.IO on path `/ws`
-- REST APIs under `/api/v1`
-- Health endpoint at `/health`
-
-## Authentication Flow
-
-### Register
-
-`POST /api/v1/auth/register`
-
-Request:
+Request body:
 
 ```json
 {
   "email": "player@example.com",
   "username": "player1",
-  "password": "strongpassword"
-}
-```
-
-Response:
-
-```json
-{
-  "token": "jwt-token"
+  "password": "password123"
 }
 ```
 
 Validation rules:
 
-- email must be a valid email address
-- username must be 3 to 32 characters
-- password must be at least 8 characters
+- email: valid email
+- username: min 3, max 32
+- password: min 8
 
-### Login
+Success response:
 
-`POST /api/v1/auth/login`
+```json
+{
+  "token": "<jwt>"
+}
+```
 
-Request:
+### POST /api/v1/auth/login
+
+Request body:
 
 ```json
 {
   "identity": "player@example.com",
-  "password": "strongpassword"
+  "password": "password123"
 }
 ```
 
-Response:
+Success response:
 
 ```json
 {
-  "token": "jwt-token"
+  "token": "<jwt>"
 }
 ```
 
-`identity` may be either the email or username.
+## 4. Protected REST APIs
 
-### Frontend guidance
+For these endpoints, send:
 
-- Store the token securely in memory or an appropriate session mechanism for your frontend stack.
-- Send it as `Authorization: Bearer <token>` for REST calls.
-- Send it as Socket.IO auth token when connecting to gameplay.
+- Authorization: Bearer <jwt>
+- Content-Type: application/json
 
-## REST API Contract
+### GET /api/v1/profile
 
-### Health
-
-`GET /health`
-
-Response:
-
-```json
-{
-  "status": "ok",
-  "db": true,
-  "redis": true
-}
-```
-
-Use this for startup checks and deployment monitoring.
-
-### Profile
-
-`GET /api/v1/profile`
-
-Headers:
-
-- Authorization: Bearer token
-
-Response:
+Response shape:
 
 ```json
 {
@@ -125,11 +87,9 @@ Response:
 }
 ```
 
-### Leaderboards
+### GET /api/v1/leaderboards?limit=20
 
-`GET /api/v1/leaderboards?limit=20`
-
-Response:
+Response shape:
 
 ```json
 {
@@ -145,45 +105,9 @@ Response:
 }
 ```
 
-### Create Room
+### GET /api/v1/rooms
 
-`POST /api/v1/rooms`
-
-Headers:
-
-- Authorization: Bearer token
-
-Request:
-
-```json
-{
-  "name": "Friendly Table",
-  "maxPlayers": 4,
-  "isPrivate": true,
-  "password": "roompass",
-  "region": "global"
-}
-```
-
-Response:
-
-```json
-{
-  "roomId": "room_id"
-}
-```
-
-Validation rules:
-
-- name: 2 to 80 characters
-- maxPlayers: 2 to 4
-- password required if room is private
-
-### List Rooms
-
-`GET /api/v1/rooms`
-
-Response:
+Response shape:
 
 ```json
 {
@@ -197,56 +121,80 @@ Response:
       "region": "global",
       "status": "WAITING",
       "createdAt": "2026-04-09T00:00:00.000Z",
-      "players": [
-        {
-          "id": "user_id",
-          "username": "player1"
-        }
-      ]
+      "players": [{ "id": "user_id", "username": "player1" }]
     }
   ]
 }
 ```
 
-### Join Room
+### POST /api/v1/rooms
 
-`POST /api/v1/rooms/:roomId/join`
+Required body rules:
 
-Headers:
+- name: 2 to 80 chars
+- maxPlayers: numeric value 2 to 4
+- isPrivate: boolean when present
+- password: optional, but if sent must be 4 to 128 chars
+- region: optional, but if sent must be 2 to 32 chars
 
-- Authorization: Bearer token
-
-Request for private room:
+Public room request:
 
 ```json
 {
-  "password": "roompass"
+  "name": "My Public Room",
+  "maxPlayers": 4,
+  "isPrivate": false
 }
 ```
 
-Response:
+Private room request:
+
+```json
+{
+  "name": "My Private Room",
+  "maxPlayers": 4,
+  "isPrivate": true,
+  "password": "1234",
+  "region": "global"
+}
+```
+
+Success response:
+
+```json
+{
+  "roomId": "room_id"
+}
+```
+
+### POST /api/v1/rooms/:roomId/join
+
+Public room body can be empty object:
+
+```json
+{}
+```
+
+Private room body:
+
+```json
+{
+  "password": "1234"
+}
+```
+
+Success response:
 
 ```json
 {
   "roomId": "room_id",
-  "players": [
-    {
-      "id": "user_id",
-      "username": "player1"
-    }
-  ]
+  "players": [{ "id": "user_id", "username": "player1" }]
 }
 ```
 
-### Matchmake
+### POST /api/v1/matchmake
 
-`POST /api/v1/matchmake`
-
-Headers:
-
-- Authorization: Bearer token
-
-Request:
+Request body:
 
 ```json
 {
@@ -255,7 +203,7 @@ Request:
 }
 ```
 
-Response when queued:
+Queued response:
 
 ```json
 {
@@ -263,7 +211,7 @@ Response when queued:
 }
 ```
 
-Response when matched:
+Matched response:
 
 ```json
 {
@@ -273,19 +221,14 @@ Response when matched:
 }
 ```
 
-## Socket.IO Contract
+## 5. Socket.IO Contract
 
 ### Connection
 
-Connect with:
-
-- path: `/ws`
-- auth token in `auth.token` or `Authorization` header
-
-Example:
-
 ```js
-const socket = io(BASE_URL, {
+import { io } from "socket.io-client";
+
+const socket = io("http://168.144.71.133", {
   path: "/ws",
   auth: {
     token: jwtToken
@@ -293,13 +236,11 @@ const socket = io(BASE_URL, {
 });
 ```
 
-If the token is missing or invalid, the socket connection is rejected.
+If token is invalid or missing, server rejects connection.
 
-### Events emitted by the client
+### Client events
 
-#### `join_room`
-
-Payload:
+join_room
 
 ```json
 {
@@ -307,15 +248,7 @@ Payload:
 }
 ```
 
-Purpose:
-
-- joins the Socket.IO room
-- allows the backend to count connected players
-- enables the frontend to receive `room_joined` or `state_update`
-
-#### `start_game`
-
-Payload:
+start_game
 
 ```json
 {
@@ -323,14 +256,7 @@ Payload:
 }
 ```
 
-Purpose:
-
-- asks the server to create the initial game state
-- requires 2 to 4 connected players in that room
-
-#### `play_card`
-
-Payload:
+play_card
 
 ```json
 {
@@ -340,19 +266,21 @@ Payload:
 }
 ```
 
-Rules:
+Card values:
 
-- The current player must own the turn.
-- The selected card must be in that player's hand.
-- `targetTikiId` is required for all moves except `TIKI_TOAST`.
-- `TIKI_TOAST` cannot be the first move of a round.
-- The server rejects any invalid move.
+- TIKI_UP_1
+- TIKI_UP_2
+- TIKI_UP_3
+- TIKI_TOPPLE
+- TIKI_TOAST
 
-### Events emitted by the server
+Rule note:
 
-#### `room_joined`
+- targetTikiId is required for all cards except TIKI_TOAST.
 
-Payload:
+### Server events
+
+room_joined
 
 ```json
 {
@@ -362,14 +290,7 @@ Payload:
 }
 ```
 
-Frontend use:
-
-- show lobby occupancy
-- enable or disable the Start button
-
-#### `state_update`
-
-Payload shape:
+state_update
 
 ```json
 {
@@ -380,37 +301,22 @@ Payload shape:
   "players": {
     "user1": {
       "playerId": "user1",
-      "secret": {
-        "top": 3,
-        "middle": 6,
-        "bottom": 9
-      },
+      "secret": { "top": 3, "middle": 6, "bottom": 9 },
       "hand": ["TIKI_UP_1", "TIKI_TOAST"]
     }
   },
-  "totemStack": [1,2,3,4,5,6,7,8,9],
+  "totemStack": [1, 2, 3, 4, 5, 6, 7, 8, 9],
   "eliminatedTotems": [],
   "cardsPlayedCount": 0,
   "turnNumber": 1,
-  "scores": {
-    "user1": 0,
-    "user2": 0
-  },
+  "scores": { "user1": 0, "user2": 0 },
   "roundComplete": false,
   "gameComplete": false,
   "maxRounds": 4
 }
 ```
 
-Frontend rules:
-
-- Always replace local board state with the server payload.
-- Re-render cards, score, and turn indicator from this object.
-- Secret cards may be hidden in UI if you do not want to reveal them to the player.
-
-#### `error_event`
-
-Payload:
+error_event
 
 ```json
 {
@@ -418,142 +324,116 @@ Payload:
 }
 ```
 
-Use this for toast notifications or inline move errors.
+## 6. Error Handling Guide
 
-## Game State UI Rules
-
-### Board state rendering
-
-The frontend should render the board from `totemStack`.
-
-- Index 0 is the top position.
-- The last item is the bottom position.
-- The top three positions are the scoring positions at round end.
-
-### Move handling
-
-Recommended UI sequence:
-
-1. Player clicks a card.
-2. Frontend checks basic local rules.
-3. Frontend sends `play_card`.
-4. Frontend shows a pending animation.
-5. Backend responds with `state_update` or `error_event`.
-6. Frontend either confirms the animation or rolls it back.
-
-### Safe frontend behavior
-
-- Never permanently mutate local state before the server reply.
-- If a server error arrives, discard the local prediction.
-- Disable the move button while awaiting a response if the UX is turn-based and single-action.
-- Reconnect automatically on socket drop.
-- After reconnect, re-send `join_room` and request a fresh `state_update` if needed.
-
-## Error Handling Contract
-
-### HTTP errors
-
-The backend returns JSON errors in this shape:
+HTTP errors are JSON:
 
 ```json
 {
-  "message": "Something went wrong"
+  "message": "Error message",
+  "details": "Optional validation details"
 }
 ```
 
-Validation errors may include a `details` field.
+Common statuses:
 
-Common expected cases:
+- 400: invalid payload
+- 401: missing/invalid token
+- 404: missing room/user
+- 409: duplicate user
+- 500: backend exception
 
-- 400 - invalid request body or bad query parameters
-- 401 - missing or invalid token
-- 404 - room or user not found
-- 409 - duplicate user or username
-- 500 - unexpected server failure
+Socket errors arrive as error_event and should be displayed in UI.
 
-### Socket errors
+## 7. Frequent Frontend Mistakes
 
-Socket errors are delivered as `error_event` objects.
+Register 400 causes:
 
-Frontend should:
+- invalid email
+- username under 3 chars
+- password under 8 chars
+- missing Content-Type: application/json
 
-- display the message to the user
-- keep the socket alive unless the connection itself is broken
-- leave the room if the server says the match is invalid or closed
+Create room 400 causes:
 
-## Frontend Integration Checklist
+- name shorter than 2 chars
+- maxPlayers outside 2..4
+- isPrivate sent as string instead of boolean
+- password sent as empty string
+- region sent as empty string
 
-Before shipping the UI, verify the frontend does all of the following:
+### Safe payload builder for room create
 
-- Sends the JWT on both REST and socket connections
-- Handles room create/join/matchmake success states
-- Renders waiting room occupancy
-- Disables move buttons when it is not the player's turn
-- Applies server `state_update` as the final state
-- Shows server error messages directly
-- Handles reconnect automatically
-- Avoids assuming round completion locally
-- Keeps lobby and game screen state separate
+```ts
+const payload: Record<string, unknown> = {
+  name: roomName.trim(),
+  maxPlayers: Number(maxPlayers),
+  isPrivate: Boolean(isPrivate)
+};
 
-## Recommended Component Model
-
-A clean frontend usually needs these state groups:
-
-- auth state
-- profile state
-- rooms lobby state
-- active room socket state
-- game board state
-- transient error state
-- reconnect state
-
-## Known Backend Limits
-
-The current backend implementation is an MVP foundation.
-
-- Game state currently lives in memory during a match.
-- Full persistence of active matches is not yet implemented.
-- Replays are not yet stored.
-- Spectator support is not yet exposed in the socket contract.
-- Round progression beyond a single round still needs expansion.
-
-The frontend should therefore be defensive:
-
-- treat reconnects as possible mid-match
-- avoid assuming a full replay archive exists
-- gracefully handle state refreshes
-
-## Suggested Next Backend Improvements
-
-These are the best follow-up items if you want even fewer frontend errors:
-
-- persist active games to Redis and database snapshots
-- add a formal OpenAPI file
-- add a shared TypeScript package for API and socket types
-- add runtime schema serialization for socket payloads
-- expose spectator and replay endpoints
-- add per-event acknowledgements with request IDs
-
-## Minimal Frontend Example
-
-```js
-async function playMove(socket, roomId, card, targetTikiId) {
-  socket.emit("play_card", {
-    roomId,
-    card,
-    targetTikiId
-  });
+if (payload.isPrivate) {
+  const value = password.trim();
+  if (value.length < 4) {
+    throw new Error("Private room password must be at least 4 characters");
+  }
+  payload.password = value;
 }
 
-socket.on("state_update", (state) => {
-  renderGame(state);
-});
-
-socket.on("error_event", (event) => {
-  showToast(event.message);
-});
+if (region.trim().length >= 2) {
+  payload.region = region.trim();
+}
 ```
 
-## Final Rule
+## 8. End-to-End Smoke Test (Copy/Paste)
 
-If the frontend and backend disagree, the backend wins.
+Register:
+
+```bash
+curl -i -X POST http://168.144.71.133/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"testa@example.com","username":"testa","password":"password123"}'
+```
+
+Login:
+
+```bash
+curl -i -X POST http://168.144.71.133/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"identity":"testa","password":"password123"}'
+```
+
+Create room with token:
+
+```bash
+TOKEN="<paste-jwt>"
+curl -i -X POST http://168.144.71.133/api/v1/rooms \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Smoke Room","maxPlayers":4,"isPrivate":false}'
+```
+
+Health check:
+
+```bash
+curl -i http://168.144.71.133/health
+```
+
+## 9. Frontend Checklist Before Release
+
+- REST client sets Content-Type: application/json for POST calls
+- Auth token is persisted and attached to protected calls
+- Socket connects with auth token and path /ws
+- Join/start/play socket events match documented payloads
+- UI handles error_event and HTTP error JSON gracefully
+- Create room request omits empty password and empty region fields
+- maxPlayers is always numeric and between 2 and 4
+- App polls or checks /health for environment readiness
+
+## 10. Scope Limits in Current Backend
+
+- Active game state is in-memory during runtime.
+- Spectator mode is not yet fully exposed.
+- Full replay persistence is not implemented yet.
+- Multi-round completion logic is partially scaffolded and can be expanded further.
+
+Plan frontend UX accordingly and always trust state_update payloads from server.

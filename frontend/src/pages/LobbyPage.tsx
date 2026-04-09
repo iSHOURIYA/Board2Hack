@@ -43,13 +43,21 @@ export const LobbyPage: React.FC = () => {
     e.preventDefault();
     setError(null);
     try {
-      const res = await api.rooms.create({
-        name: createName,
-        maxPlayers: createMax,
-        isPrivate: createPrivate,
-        password: createPrivate ? createPassword : '',
-        region: 'global'
-      });
+      const payload: Record<string, unknown> = {
+        name: createName.trim(),
+        maxPlayers: Number(createMax),
+        isPrivate: Boolean(createPrivate)
+      };
+
+      if (payload.isPrivate) {
+        const passValue = createPassword.trim();
+        if (passValue.length < 4) {
+          throw new Error("Private room password must be at least 4 characters");
+        }
+        payload.password = passValue;
+      }
+
+      const res = await api.rooms.create(payload);
       setLocation(`/game/${res.roomId}`);
     } catch (err: any) {
       setError(err.message);

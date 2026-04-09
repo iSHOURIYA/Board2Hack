@@ -21,9 +21,12 @@ export const AuthPage: React.FC = () => {
     
     try {
       if (isLogin) {
+        if (password.length < 8) throw new Error("Password must be at least 8 characters");
         const res = await api.auth.login({ identity, password });
         setToken(res.token);
       } else {
+        if (username.length < 3 || username.length > 32) throw new Error("Username must be between 3 and 32 characters");
+        if (password.length < 8) throw new Error("Password must be at least 8 characters");
         const res = await api.auth.register({ email: identity, username, password });
         setToken(res.token);
       }
