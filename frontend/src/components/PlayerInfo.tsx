@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type { BoardState } from '../types/socket';
 import { User, Trophy, Star } from 'lucide-react';
 
@@ -9,6 +9,26 @@ interface Props {
 }
 
 export const PlayerInfo: React.FC<Props> = ({ boardState, myUserId, myUsername }) => {
+  const [animatedScores, setAnimatedScores] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      setAnimatedScores((prev) => {
+        const next: Record<string, number> = { ...prev };
+        for (const [id, score] of Object.entries(boardState.scores)) {
+          const current = next[id] ?? score;
+          if (current < score) {
+            next[id] = Math.min(score, current + 1);
+          } else {
+            next[id] = score;
+          }
+        }
+        return next;
+      });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [boardState.scores]);
+
   const trackMaxScore = Math.max(35, ...Object.values(boardState.scores));
   const trackSlots = Array.from({ length: trackMaxScore + 1 }, (_, i) => i);
 
@@ -26,6 +46,13 @@ export const PlayerInfo: React.FC<Props> = ({ boardState, myUserId, myUsername }
   };
 
   const tokenColors = ['#ef4444', '#3b82f6', '#22c55e', '#f59e0b'];
+  const scoresByPlayer = useMemo(() => {
+    const mapped: Record<string, number> = {};
+    for (const playerId of boardState.playerOrder) {
+      mapped[playerId] = animatedScores[playerId] ?? boardState.scores[playerId] ?? 0;
+    }
+    return mapped;
+  }, [animatedScores, boardState.playerOrder, boardState.scores]);
 
   const scoreToAngle = (score: number) => {
     const normalized = Math.min(Math.max(score, 0), trackMaxScore) / trackMaxScore;
@@ -45,8 +72,8 @@ export const PlayerInfo: React.FC<Props> = ({ boardState, myUserId, myUsername }
   };
 
   return (
-    <div className="glass-panel" style={{ padding: '1.5rem', height: '100%' }}>
-      <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+    <div className="glass-panel player-panel" style={{ padding: '1.5rem', height: '100%' }}>
+      <h3 className="player-panel-heading" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
         <Trophy size={20} color="var(--accent-primary)" /> Scores
       </h3>
 
@@ -104,30 +131,21 @@ export const PlayerInfo: React.FC<Props> = ({ boardState, myUserId, myUsername }
         {boardState.playerOrder.map((playerId) => {
           const isCurrentTurn = boardState.currentPlayerId === playerId;
           const isMe = myUserId === playerId;
-          const score = boardState.scores[playerId] || 0;
+          const score = scoresByPlayer[playerId] || 0;
           
           return (
-            <div 
+            <div
               key={playerId} 
-              style={{ 
-                padding: '1rem', 
-                borderRadius: '8px',
-                background: isCurrentTurn ? 'rgba(245, 158, 11, 0.1)' : 'rgba(255,255,255,0.05)',
-                border: `1px solid ${isCurrentTurn ? 'var(--accent-primary)' : 'transparent'}`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                transition: 'all 0.3s ease'
-              }}
+              className={`player-row ${isCurrentTurn ? 'current-turn' : ''}`}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div className="player-row-left">
                 <User size={18} color={isCurrentTurn ? 'var(--accent-primary)' : 'var(--text-secondary)'} />
-                <span title={playerId} style={{ fontWeight: isMe ? 'bold' : 'normal', color: isCurrentTurn ? 'white' : 'var(--text-primary)' }}>
+                <span title={playerId} className={`player-row-name ${isMe ? 'is-me' : ''}`}>
                   {resolvePlayerName(playerId)}
                 </span>
               </div>
               
-              <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--accent-secondary)' }}>
+              <div className="player-row-score">
                 {score} pts
               </div>
             </div>
@@ -136,28 +154,28 @@ export const PlayerInfo: React.FC<Props> = ({ boardState, myUserId, myUsername }
       </div>
 
       {boardState.players[myUserId]?.secret && (
-        <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--glass-border)' }}>
-          <h4 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+        <div className="secret-agenda-wrap" style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--glass-border)' }}>
+          <h4 className="secret-agenda-title" style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
             <Star size={16} /> Your Secret Agenda
           </h4>
-          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-            <div style={{ textAlign: 'center' }}>
+          <div className="secret-agenda-cards" style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+            <div className="secret-chip" style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Top (9 pts)</div>
-              <div style={{ background: `var(--tiki-${boardState.players[myUserId].secret!.top})`, width: '40px', height: '40px', borderRadius: '4px', display: 'grid', placeItems: 'center', fontWeight: 'bold', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+              <div className="secret-chip-value" style={{ background: `var(--tiki-${boardState.players[myUserId].secret!.top})`, width: '40px', height: '40px', borderRadius: '4px', display: 'grid', placeItems: 'center', fontWeight: 'bold', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
                 {boardState.players[myUserId].secret!.top}
               </div>
               <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '4px' }}>if 1st</div>
             </div>
-            <div style={{ textAlign: 'center' }}>
+            <div className="secret-chip" style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Mid (5 pts)</div>
-              <div style={{ background: `var(--tiki-${boardState.players[myUserId].secret!.middle})`, width: '40px', height: '40px', borderRadius: '4px', display: 'grid', placeItems: 'center', fontWeight: 'bold', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+              <div className="secret-chip-value" style={{ background: `var(--tiki-${boardState.players[myUserId].secret!.middle})`, width: '40px', height: '40px', borderRadius: '4px', display: 'grid', placeItems: 'center', fontWeight: 'bold', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
                 {boardState.players[myUserId].secret!.middle}
               </div>
               <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '4px' }}>if 1st-2nd</div>
             </div>
-            <div style={{ textAlign: 'center' }}>
+            <div className="secret-chip" style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Bot (2 pts)</div>
-              <div style={{ background: `var(--tiki-${boardState.players[myUserId].secret!.bottom})`, width: '40px', height: '40px', borderRadius: '4px', display: 'grid', placeItems: 'center', fontWeight: 'bold', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+              <div className="secret-chip-value" style={{ background: `var(--tiki-${boardState.players[myUserId].secret!.bottom})`, width: '40px', height: '40px', borderRadius: '4px', display: 'grid', placeItems: 'center', fontWeight: 'bold', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
                 {boardState.players[myUserId].secret!.bottom}
               </div>
               <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '4px' }}>if 1st-3rd</div>

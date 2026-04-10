@@ -17,9 +17,26 @@ const cardDescriptions: Record<string, string> = {
   TIKI_TOPPLE: "Send to Bottom",
 };
 
+const cardLabels: Record<CardId, string> = {
+  TIKI_UP_1: 'Tiki Up +1',
+  TIKI_UP_2: 'Tiki Up +2',
+  TIKI_UP_3: 'Tiki Up +3',
+  TIKI_TOPPLE: 'Tiki Topple',
+  TIKI_TOAST: 'Tiki Toast'
+};
+
+const cardGlyph: Record<CardId, string> = {
+  TIKI_UP_1: '▲',
+  TIKI_UP_2: '▲▲',
+  TIKI_UP_3: '▲▲▲',
+  TIKI_TOPPLE: '↧',
+  TIKI_TOAST: '🔥'
+};
+
 export const PlayerHand: React.FC<Props> = ({ hand, onSelectCard, selectedCard, disabled, cardsPlayedCount }) => {
   return (
-    <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', padding: '1rem', background: 'rgba(0,0,0,0.2)', borderRadius: '12px' }}>
+    <div className="card-hand-shell">
+      <div className="card-hand-scroll">
       {hand.map((card, idx) => {
         const isToastRestricted = card === 'TIKI_TOAST' && cardsPlayedCount === 0;
         const cardDisabled = disabled || isToastRestricted;
@@ -35,8 +52,9 @@ export const PlayerHand: React.FC<Props> = ({ hand, onSelectCard, selectedCard, 
           />
         );
       })}
+      </div>
       {hand.length === 0 && (
-         <div style={{ padding: '2rem', textAlign: 'center', width: '100%', color: 'var(--text-secondary)' }}>
+         <div className="empty-hand-note">
            No cards left
          </div>
       )}
@@ -45,37 +63,21 @@ export const PlayerHand: React.FC<Props> = ({ hand, onSelectCard, selectedCard, 
 };
 
 const CardItem: React.FC<{ card: CardId, selected: boolean, disabled: boolean, isToastRestricted: boolean, onClick: () => void }> = ({ card, selected, disabled, isToastRestricted, onClick }) => {
+  const cardClass = `tiki-card ${selected ? 'selected' : ''} ${disabled ? 'disabled' : ''}`;
   return (
     <div 
       onClick={onClick}
-      style={{
-        minWidth: '120px',
-        height: '160px',
-        background: selected ? 'var(--bg-dark)' : 'var(--glass-bg)',
-        border: `2px solid ${selected ? 'var(--accent-primary)' : 'var(--glass-border)'}`,
-        borderRadius: '12px',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '1rem',
-        textAlign: 'center',
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.5 : 1,
-        transform: selected ? 'translateY(-10px)' : 'translateY(0)',
-        transition: 'all 0.2s ease',
-        boxShadow: selected ? '0 8px 16px rgba(0,0,0,0.4)' : 'none',
-      }}
+      className={cardClass}
       title={isToastRestricted ? "Cannot be played as the first card of the round" : undefined}
     >
-      <div style={{ fontWeight: 600, fontSize: '1.1rem', marginBottom: '0.5rem' }}>
-        {card.replace(/_/g, ' ')}
-      </div>
-      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+      <div className="tiki-card-grain" />
+      <div className="tiki-card-icon">{cardGlyph[card]}</div>
+      <div className="tiki-card-title">{cardLabels[card]}</div>
+      <div className="tiki-card-effect">
         {cardDescriptions[card]}
       </div>
       {isToastRestricted && (
-        <div style={{ fontSize: '0.65rem', color: 'var(--accent-secondary)', marginTop: '0.5rem', fontWeight: 'bold' }}>
+        <div className="tiki-card-rule-lock">
           Restricted Turn 1
         </div>
       )}

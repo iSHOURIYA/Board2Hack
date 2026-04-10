@@ -11,11 +11,11 @@ interface Props {
 
 export const TotemStack: React.FC<Props> = ({ stack, eliminated, onSelectTiki, selectedTiki, selectable }) => {
   return (
-    <div style={{ display: 'flex', gap: '2rem', justifyContent: 'center' }}>
+    <div className="totem-scene">
       {/* Eliminated Stack */}
       {eliminated.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', justifyContent: 'flex-end', opacity: 0.5, transform: 'scale(0.8)' }}>
-          <h4 style={{ textAlign: 'center', color: 'var(--text-danger)', fontSize: '0.8rem' }}>Eliminated</h4>
+        <div className="eliminated-lane">
+          <h4 className="eliminated-title">Eliminated</h4>
           {eliminated.map(id => (
             <TikiBlock key={`elim-${id}`} id={id} />
           ))}
@@ -23,13 +23,15 @@ export const TotemStack: React.FC<Props> = ({ stack, eliminated, onSelectTiki, s
       )}
 
       {/* Main Stack */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', position: 'relative' }}>
+      <div className="totem-track-wrap">
+         <div className="track-temple-cap" />
+         <div className="track-wood-column" />
          {/* Top 3 Highlighting */}
-         <div style={{ position: 'absolute', top: '-10px', bottom: 'auto', left: '-20px', right: '-20px', height: 'calc((60px + 0.5rem) * 3 + 20px)', border: '2px dashed var(--accent-primary)', borderRadius: '12px', pointerEvents: 'none', zIndex: 0 }} />
-         <div style={{ position: 'absolute', top: '-30px', width: '100%', textAlign: 'center', color: 'var(--accent-primary)', fontSize: '0.8rem', fontWeight: 'bold' }}>Scoring Zone</div>
+         <div className="scoring-zone-glow" />
+         <div className="scoring-zone-label">Scoring Zone</div>
          
         {stack.map((id) => (
-          <div key={id} style={{ position: 'relative', zIndex: 1 }}>
+          <div key={id} className="totem-stack-item">
             <TikiBlock 
               id={id} 
               selected={selectedTiki === id}
@@ -62,33 +64,13 @@ const TikiBlock: React.FC<{ id: TikiId, selected?: boolean, selectable?: boolean
   return (
     <div 
       onClick={onClick}
+      className={`tiki-stone ${selected ? 'selected' : ''} ${selectable ? 'selectable' : ''}`}
       style={{
-        width: '180px',
-        height: '65px',
         backgroundColor: colorVar,
         backgroundImage: `url('${bgImage}')`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundBlendMode: 'overlay',
-        borderRadius: '16px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontWeight: '900',
-        fontSize: '1.4rem',
-        textShadow: '0 2px 4px rgba(0,0,0,0.8), 0 0 10px rgba(0,0,0,0.5)',
-        boxShadow: selected 
-          ? `0 0 0 4px var(--bg-dark), 0 0 0 8px ${colorVar}, inset 0 0 20px rgba(0,0,0,0.6), 0 15px 35px rgba(0,0,0,0.7)` 
-          : 'inset 0 0 15px rgba(0,0,0,0.5), 0 6px 12px rgba(0,0,0,0.4)',
-        transform: selected ? 'scale(1.05) translateY(-5px)' : 'scale(1)',
-        cursor: selectable ? 'pointer' : 'default',
-        transition: 'all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
-        border: '3px solid rgba(255,255,255,0.3)',
-        color: '#fff',
-        letterSpacing: '1px'
       }}
     >
-      TIKI {id}
+      <span className="tiki-stone-number">{id}</span>
     </div>
   )
 }

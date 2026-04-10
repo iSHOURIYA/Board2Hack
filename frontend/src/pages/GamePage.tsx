@@ -8,7 +8,8 @@ import type { BoardState, RoomJoinedPayload, ErrorEventPayload } from '../types/
 import { TotemStack } from '../components/TotemStack';
 import { PlayerHand } from '../components/PlayerHand';
 import { PlayerInfo } from '../components/PlayerInfo';
-import { AlertCircle, Clock } from 'lucide-react';
+import { AlertCircle, Clock, Volume2, VolumeX } from 'lucide-react';
+import { useSound } from '../hooks/useSound';
 
 export const GamePage: React.FC = () => {
   const [, params] = useRoute('/game/:roomId');
@@ -29,6 +30,47 @@ export const GamePage: React.FC = () => {
 
   const [selectedCard, setSelectedCard] = useState<CardId | undefined>();
   const [selectedTiki, setSelectedTiki] = useState<TikiId | undefined>();
+  const [boardTilt, setBoardTilt] = useState({ x: 0, y: 0 });
+  const { enabled: soundEnabled, toggle: toggleSound, play, ambient } = useSound();
+
+  useEffect(() => {
+    ambient.start();
+    return () => {
+      ambient.stop();
+    };
+  }, [ambient]);
+
+  useEffect(() => {
+    const hasEliminated = (boardState?.eliminatedTotems.length || 0) > 0;
+    if (hasEliminated) {
+      play('eliminated');
+      return;
+    }
+    if (selectedCard === 'TIKI_TOPPLE') {
+      play('topple');
+      return;
+    }
+    if (selectedCard) {
+      play('stoneShift');
+    }
+  }, [boardState?.eliminatedTotems.length, selectedCard, play]);
+
+  useEffect(() => {
+    if (!selectedCard) return;
+    play('cardSelect');
+  }, [selectedCard, play]);
+
+  useEffect(() => {
+    if (pendingMove) {
+      play('cardPlay');
+    }
+  }, [pendingMove, play]);
+
+  useEffect(() => {
+    if (boardState?.roundComplete || boardState?.gameComplete) {
+      play('scoreUp');
+    }
+  }, [boardState?.roundComplete, boardState?.gameComplete, play]);
 
   useEffect(() => {
     if (!roomId) return;
@@ -95,6 +137,17 @@ export const GamePage: React.FC = () => {
     setSelectedTiki(undefined);
   };
 
+  const handleBoardMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width - 0.5) * 6;
+    const y = ((event.clientY - rect.top) / rect.height - 0.5) * -6;
+    setBoardTilt({ x, y });
+  };
+
+  const resetBoardTilt = () => {
+    setBoardTilt({ x: 0, y: 0 });
+  };
+
   if (!roomId || !profile) return null;
 
   const isMyTurn = boardState?.currentPlayerId === profile.id;
@@ -120,13 +173,18 @@ export const GamePage: React.FC = () => {
   return (
     <div className="page-container">
       {/* Header Info */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+      <div className="game-header-row">
         <h2 className="section-title" style={{ margin: 0 }}>Room: {roomId}</h2>
-        {boardState && (
-          <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: isMyTurn ? 'var(--accent-primary)' : 'var(--text-secondary)' }}>
-            Turn: {currentPlayerLabel}
-          </div>
-        )}
+        <div className="game-header-right">
+          {boardState && (
+            <div className={`turn-indicator ${isMyTurn ? 'active' : ''}`}>
+              Turn: {currentPlayerLabel}
+            </div>
+          )}
+          <button className="glass-button" type="button" onClick={toggleSound} aria-label="Toggle game audio">
+            {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />} {soundEnabled ? 'Sound On' : 'Sound Off'}
+          </button>
+        </div>
       </div>
 
       {/* Waiting Room Phase */}
@@ -159,7 +217,19 @@ export const GamePage: React.FC = () => {
           
           <div className="game-main">
             {/* Board Area */}
-            <div className="glass-panel board-panel" style={{ flex: 1, padding: '2rem', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div
+              className="glass-panel board-panel"
+              style={{
+                flex: 1,
+                padding: '2rem',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+                transform: `perspective(1100px) rotateX(${boardTilt.y}deg) rotateY(${boardTilt.x}deg)`,
+              }}
+              onMouseMove={handleBoardMouseMove}
+              onMouseLeave={resetBoardTilt}
+            >
                {boardState.gameComplete && (
                   <div style={{ textAlign:'center', backgroundColor: 'var(--accent-primary)', color: '#000', padding: '1rem', borderRadius: '8px', marginBottom: '2rem', fontWeight: 'bold' }}>
                     Game Complete! Winner: {Object.keys(boardState.scores).reduce((a, b) => boardState.scores[a] > boardState.scores[b] ? a : b)}
