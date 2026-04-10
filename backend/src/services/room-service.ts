@@ -1,6 +1,8 @@
 import { prisma } from "../config/prisma";
 import type { RoomStatus } from "@prisma/client";
 
+const ROOM_UNUSED_TTL_MS = 15 * 60 * 1000;
+
 export interface CreateRoomInput {
   hostId: string;
   name: string;
@@ -40,6 +42,60 @@ export const createRoom = async (input: CreateRoomInput) => {
   });
 
   return room;
+};
+
+export const clearAllRooms = async () => {
+  const result = await prisma.room.deleteMany({});
+  return result.count;
+};
+
+export const deleteExpiredUnusedRooms = async (now: Date = new Date()) => {
+  const cutoff = new Date(now.getTime() - ROOM_UNUSED_TTL_MS);
+  const candidates = await prisma.room.findMany({
+    where: {
+      status: "WAITING",
+      createdAt: {
+        lte: cutoff
+      }
+    },
+    select: {
+      id: true,
+      hostId: true,
+      players: {
+        select: {
+          userId: true
+        }
+      },
+      gameSessions: {
+        select: {
+          id: true
+        },
+        take: 1
+      }
+    }
+  });
+
+  const roomIdsToDelete = candidates
+    .filter((room) => {
+      const hasOnlyHostPlayer = room.players.every((player) => player.userId === room.hostId);
+      const hasNoGameSession = room.gameSessions.length === 0;
+      return hasOnlyHostPlayer && hasNoGameSession;
+    })
+    .map((room) => room.id);
+
+  if (roomIdsToDelete.length === 0) {
+    return 0;
+  }
+
+  const result = await prisma.room.deleteMany({
+    where: {
+      id: {
+        in: roomIdsToDelete
+      }
+    }
+  });
+
+  return result.count;
 };
 
 export const listRooms = async (status: RoomStatus = "WAITING") => {

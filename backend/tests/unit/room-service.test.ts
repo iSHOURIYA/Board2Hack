@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 
 const roomState = new Map<string, any>();
 
@@ -17,12 +17,31 @@ const prismaMock = {
       roomState.set(room.id, room);
       return room;
     }),
-    findMany: vi.fn(async () => []),
+    findMany: vi.fn(async ({ where }: any = {}) => {
+      if (!where?.createdAt?.lte) {
+        return [];
+      }
+
+      const cutoff = where.createdAt.lte as Date;
+      return Array.from(roomState.values()).filter(
+        (room) => room.status === "WAITING" && room.createdAt && room.createdAt <= cutoff
+      );
+    }),
     findUnique: vi.fn(async ({ where }: any) => roomState.get(where.id) ?? null),
     findUniqueOrThrow: vi.fn(async ({ where }: any) => {
       const room = roomState.get(where.id);
       if (!room) throw new Error("Room not found.");
       return room;
+    }),
+    deleteMany: vi.fn(async ({ where }: any) => {
+      const ids = where?.id?.in ?? [];
+      let count = 0;
+      for (const id of ids) {
+        if (roomState.delete(id)) {
+          count += 1;
+        }
+      }
+      return { count };
     })
   },
   roomPlayer: {
@@ -42,6 +61,64 @@ vi.mock("../../src/config/prisma", () => ({ prisma: prismaMock }));
 const loadModule = async () => import("../../src/services/room-service");
 
 describe("room-service", () => {
+  beforeEach(() => {
+    roomState.clear();
+  });
+
+  test("deleteExpiredUnusedRooms removes waiting rooms older than 15 minutes when only host is present", async () => {
+    const now = new Date("2026-04-10T12:20:00.000Z");
+    roomState.set("room-expired", {
+      id: "room-expired",
+      hostId: "host-1",
+      status: "WAITING",
+      createdAt: new Date("2026-04-10T12:00:00.000Z"),
+      players: [{ userId: "host-1" }],
+      gameSessions: []
+    });
+    roomState.set("room-active", {
+      id: "room-active",
+      hostId: "host-2",
+      status: "WAITING",
+      createdAt: new Date("2026-04-10T12:10:00.000Z"),
+      players: [{ userId: "host-2" }],
+      gameSessions: []
+    });
+
+    const { deleteExpiredUnusedRooms } = await loadModule();
+    const deletedCount = await deleteExpiredUnusedRooms(now);
+
+    expect(deletedCount).toBe(1);
+    expect(roomState.has("room-expired")).toBe(false);
+    expect(roomState.has("room-active")).toBe(true);
+  });
+
+  test("deleteExpiredUnusedRooms keeps old rooms that already had activity", async () => {
+    const now = new Date("2026-04-10T12:20:00.000Z");
+    roomState.set("room-with-guest", {
+      id: "room-with-guest",
+      hostId: "host-3",
+      status: "WAITING",
+      createdAt: new Date("2026-04-10T12:00:00.000Z"),
+      players: [{ userId: "host-3" }, { userId: "guest-1" }],
+      gameSessions: []
+    });
+    roomState.set("room-with-game", {
+      id: "room-with-game",
+      hostId: "host-4",
+      status: "WAITING",
+      createdAt: new Date("2026-04-10T12:00:00.000Z"),
+      players: [{ userId: "host-4" }],
+      gameSessions: [{ id: "game-1" }]
+    });
+
+    const { deleteExpiredUnusedRooms } = await loadModule();
+    const deletedCount = await deleteExpiredUnusedRooms(now);
+
+    expect(deletedCount).toBe(0);
+    expect(roomState.has("room-with-guest")).toBe(true);
+    expect(roomState.has("room-with-game")).toBe(true);
+  });
+
   test("createRoom seeds the host into the room", async () => {
     const { createRoom } = await loadModule();
     const room = await createRoom({
@@ -58,7 +135,12 @@ describe("room-service", () => {
   });
 
   test("joinRoom adds a new player and returns the updated room", async () => {
-    const { joinRoom } = await loadModule();
+    const { createRoom, joinRoom } = await loadModule();
+    await createRoom({
+      hostId: "host-1",
+      name: "Lobby",
+      maxPlayers: 4
+    });
     const room = await joinRoom("room-1", "player-2");
 
     expect(room.players.map((player: any) => player.user.id)).toContain("player-2");
