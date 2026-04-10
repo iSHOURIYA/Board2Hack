@@ -111,7 +111,7 @@ export const GamePage: React.FC = () => {
     <div className="page-container">
       {/* Header Info */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h2 style={{ margin: 0 }}>Room: {roomId}</h2>
+        <h2 className="section-title" style={{ margin: 0 }}>Room: {roomId}</h2>
         {boardState && (
           <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: isMyTurn ? 'var(--accent-primary)' : 'var(--text-secondary)' }}>
             Turn: {currentPlayerLabel}
@@ -145,11 +145,11 @@ export const GamePage: React.FC = () => {
 
       {/* Active Game Phase */}
       {boardState && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '2rem', flex: 1 }}>
+        <div className="game-shell">
           
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          <div className="game-main">
             {/* Board Area */}
-            <div className="glass-panel" style={{ flex: 1, padding: '2rem', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div className="glass-panel board-panel" style={{ flex: 1, padding: '2rem', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                {boardState.gameComplete && (
                   <div style={{ textAlign:'center', backgroundColor: 'var(--accent-primary)', color: '#000', padding: '1rem', borderRadius: '8px', marginBottom: '2rem', fontWeight: 'bold' }}>
                     Game Complete! Winner: {Object.keys(boardState.scores).reduce((a, b) => boardState.scores[a] > boardState.scores[b] ? a : b)}
@@ -176,7 +176,7 @@ export const GamePage: React.FC = () => {
             {/* Hand & Actions */}
             <div className="glass-panel" style={{ padding: '1.5rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h3 style={{ margin: 0 }}>Your Hand</h3>
+                <h3 className="section-title" style={{ margin: 0 }}>Your Hand</h3>
                 <button 
                   className="glass-button primary" 
                   onClick={handlePlayCard}

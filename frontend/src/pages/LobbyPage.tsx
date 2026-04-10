@@ -109,7 +109,7 @@ export const LobbyPage: React.FC = () => {
   return (
     <div className="page-container" style={{ maxWidth: '1000px', margin: '0 auto' }}>
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem' }}>
-        <h1 className="title" style={{ margin: 0, fontSize: '2rem' }}>Lobby</h1>
+        <h1 className="title" style={{ margin: 0, fontSize: '2rem' }}>Tiki Lobby</h1>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
           <span style={{ fontWeight: 500, color: 'var(--accent-secondary)' }}>{profile?.username}</span>
           <button className="glass-button" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '8px 16px' }} onClick={handleLogout}>
@@ -124,12 +124,12 @@ export const LobbyPage: React.FC = () => {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 2fr', gap: '2rem' }}>
+      <div className="lobby-layout">
         
         {/* Actions Sidebar */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           <div className="glass-panel" style={{ padding: '1.5rem' }}>
-            <h2 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <h2 className="section-title" style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Plus size={20} /> Create Room
             </h2>
             <form onSubmit={handleCreateRoom} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -154,7 +154,7 @@ export const LobbyPage: React.FC = () => {
           </div>
 
           <div className="glass-panel" style={{ padding: '1.5rem', textAlign: 'center' }}>
-            <h2 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent:'center', gap: '0.5rem' }}>
+            <h2 className="section-title" style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent:'center', gap: '0.5rem' }}>
               <Swords size={20} /> Quick Match
             </h2>
             <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
@@ -169,7 +169,7 @@ export const LobbyPage: React.FC = () => {
         {/* Room List */}
         <div className="glass-panel" style={{ padding: '2rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-            <h2>Available Rooms</h2>
+            <h2 className="section-title">Available Rooms</h2>
             <button className="glass-button" onClick={fetchRooms} disabled={isLoading} style={{ padding: '6px 12px', fontSize: '0.9rem' }}>
               Refresh
             </button>

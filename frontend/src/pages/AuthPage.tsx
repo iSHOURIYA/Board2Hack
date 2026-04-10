@@ -51,7 +51,7 @@ export const AuthPage: React.FC = () => {
           <Flame size={48} color="var(--accent-primary)" />
         </div>
         <h1 className="title" style={{ fontSize: '2.5rem', marginBottom: '2rem' }}>
-          Tiki Topple
+          Tiki Topple Arena
         </h1>
         
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
