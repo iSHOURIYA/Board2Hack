@@ -19,6 +19,9 @@ export interface BoardState {
   currentPlayerId: string;
   playerOrder: string[];
   usernames?: Record<string, string>;
+  playerNames?: Record<string, string>;
+  playerUsernames?: Record<string, string>;
+  playerMetadata?: Record<string, { username?: string; name?: string }>;
   players: Record<string, PlayerState>;
   totemStack: TikiId[]; // 0 is top
   eliminatedTotems: TikiId[];

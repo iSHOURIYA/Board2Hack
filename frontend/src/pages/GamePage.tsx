@@ -99,12 +99,22 @@ export const GamePage: React.FC = () => {
 
   const isMyTurn = boardState?.currentPlayerId === profile.id;
   const myHand = boardState?.players[profile.id]?.hand || [];
+  const resolvePlayerName = (playerId: string) => {
+    const metadataName = boardState?.playerMetadata?.[playerId]?.username || boardState?.playerMetadata?.[playerId]?.name;
+    return (
+      boardState?.usernames?.[playerId] ||
+      boardState?.playerNames?.[playerId] ||
+      boardState?.playerUsernames?.[playerId] ||
+      metadataName ||
+      boardState?.players[playerId]?.username ||
+      playerId
+    );
+  };
+
   const currentPlayerLabel = boardState
     ? (boardState.currentPlayerId === profile.id
       ? `${profile.username} (You)`
-      : boardState.usernames?.[boardState.currentPlayerId] ||
-        boardState.players[boardState.currentPlayerId]?.username ||
-        boardState.currentPlayerId)
+      : resolvePlayerName(boardState.currentPlayerId))
     : '';
 
   return (

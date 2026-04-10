@@ -21,6 +21,8 @@ export const LobbyPage: React.FC = () => {
 
   const [error, setError] = useState<string | null>(null);
 
+  const joinableRooms = rooms.filter((room) => room.status === 'WAITING' && room.players.length < room.maxPlayers);
+
   const getErrorMessage = (error: unknown, fallback: string) => {
     if (error instanceof Error && error.message) return error.message;
     return fallback;
@@ -175,13 +177,13 @@ export const LobbyPage: React.FC = () => {
             </button>
           </div>
 
-          {rooms.length === 0 ? (
+          {joinableRooms.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
-              No rooms available. Create one to start!
+              No joinable rooms right now. Create one to start!
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {rooms.map(room => (
+              {joinableRooms.map(room => (
                 <div key={room.id} className="glass-panel" style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)' }}>
                   <div>
                     <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
@@ -206,7 +208,6 @@ export const LobbyPage: React.FC = () => {
                     <button 
                       className="glass-button"
                       onClick={() => handleJoin(room)}
-                      disabled={room.players.length >= room.maxPlayers}
                     >
                       {selectedPrivateRoomId === room.id ? 'Confirm' : 'Join'}
                     </button>
