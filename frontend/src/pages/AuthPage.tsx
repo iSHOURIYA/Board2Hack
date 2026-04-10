@@ -14,6 +14,11 @@ export const AuthPage: React.FC = () => {
   const setToken = useAuthStore((s) => s.setToken);
   const [, setLocation] = useLocation();
 
+  const getErrorMessage = (error: unknown, fallback: string) => {
+    if (error instanceof Error && error.message) return error.message;
+    return fallback;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -32,8 +37,8 @@ export const AuthPage: React.FC = () => {
       }
       // On success, go to lobby
       setLocation('/lobby');
-    } catch (err: any) {
-      setError(err.message || 'An error occurred during authentication');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'An error occurred during authentication'));
     } finally {
       setLoading(false);
     }

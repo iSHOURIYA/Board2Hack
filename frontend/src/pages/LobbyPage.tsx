@@ -21,13 +21,18 @@ export const LobbyPage: React.FC = () => {
 
   const [error, setError] = useState<string | null>(null);
 
+  const getErrorMessage = (error: unknown, fallback: string) => {
+    if (error instanceof Error && error.message) return error.message;
+    return fallback;
+  };
+
   const fetchRooms = useCallback(async () => {
     try {
       setLoading(true);
       const res = await api.rooms.list();
       setRooms(res.rooms);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load rooms');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Failed to load rooms'));
     } finally {
       setLoading(false);
     }
@@ -59,8 +64,8 @@ export const LobbyPage: React.FC = () => {
 
       const res = await api.rooms.create(payload);
       setLocation(`/game/${res.roomId}`);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Failed to create room'));
     }
   };
 
@@ -73,8 +78,8 @@ export const LobbyPage: React.FC = () => {
     try {
       const res = await api.rooms.join(room.id, room.isPrivate ? joinPassword : '');
       setLocation(`/game/${res.roomId}`);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Failed to join room'));
     }
   };
 
@@ -91,8 +96,8 @@ export const LobbyPage: React.FC = () => {
         // We'll just list rooms again for now.
         fetchRooms();
       }
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Failed to matchmake'));
     }
   };
 

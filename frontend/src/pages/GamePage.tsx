@@ -4,6 +4,7 @@ import { socketService } from '../services/socket';
 import { useGameStore } from '../store/useGameStore';
 import { useAuthStore } from '../store/useAuthStore';
 import type { CardId, TikiId } from '../types/game';
+import type { BoardState, RoomJoinedPayload, ErrorEventPayload } from '../types/socket';
 import { TotemStack } from '../components/TotemStack';
 import { PlayerHand } from '../components/PlayerHand';
 import { PlayerInfo } from '../components/PlayerInfo';
@@ -34,19 +35,23 @@ export const GamePage: React.FC = () => {
 
     socketService.connect();
 
-    socketService.on('room_joined', (payload) => {
+    const onRoomJoined = (payload: RoomJoinedPayload) => {
       setRoomJoinedData(payload);
-    });
+    };
 
-    socketService.on('state_update', (payload) => {
+    const onStateUpdate = (payload: BoardState) => {
       setBoardState(payload);
-    });
+    };
 
-    socketService.on('error_event', (payload) => {
+    const onErrorEvent = (payload: ErrorEventPayload) => {
       setErrorEvent(payload.message);
       // Auto-clear toast after 3s
       setTimeout(() => setErrorEvent(null), 3000);
-    });
+    };
+
+    socketService.onRoomJoined(onRoomJoined);
+    socketService.onStateUpdate(onStateUpdate);
+    socketService.onErrorEvent(onErrorEvent);
 
     const handleConnect = () => {
       socketService.joinRoom({ roomId });
@@ -61,9 +66,9 @@ export const GamePage: React.FC = () => {
 
     return () => {
       socketService.offConnect(handleConnect);
-      socketService.off('room_joined', setRoomJoinedData as any);
-      socketService.off('state_update', setBoardState as any);
-      socketService.off('error_event', setErrorEvent as any);
+      socketService.offRoomJoined(onRoomJoined);
+      socketService.offStateUpdate(onStateUpdate);
+      socketService.offErrorEvent(onErrorEvent);
       clearRoom();
       // Optionally could disconnect, but typical SPA keeps it alive.
     };
@@ -94,6 +99,13 @@ export const GamePage: React.FC = () => {
 
   const isMyTurn = boardState?.currentPlayerId === profile.id;
   const myHand = boardState?.players[profile.id]?.hand || [];
+  const currentPlayerLabel = boardState
+    ? (boardState.currentPlayerId === profile.id
+      ? `${profile.username} (You)`
+      : boardState.usernames?.[boardState.currentPlayerId] ||
+        boardState.players[boardState.currentPlayerId]?.username ||
+        boardState.currentPlayerId)
+    : '';
 
   return (
     <div className="page-container">
@@ -102,7 +114,7 @@ export const GamePage: React.FC = () => {
         <h2 style={{ margin: 0 }}>Room: {roomId}</h2>
         {boardState && (
           <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: isMyTurn ? 'var(--accent-primary)' : 'var(--text-secondary)' }}>
-            Turn: {boardState.currentPlayerId} {isMyTurn && '(You)'}
+            Turn: {currentPlayerLabel}
           </div>
         )}
       </div>
@@ -146,13 +158,9 @@ export const GamePage: React.FC = () => {
                {boardState.roundComplete && !boardState.gameComplete && (
                   <div style={{ textAlign:'center', backgroundColor: 'var(--accent-secondary)', color: 'white', padding: '1rem', borderRadius: '8px', marginBottom: '2rem', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
                     <div>Round {boardState.roundNumber} Complete!</div>
-                    <button 
-                      className="glass-button" 
-                      onClick={handleStartGame}
-                      style={{ background: 'white', color: 'black', padding: '0.5rem 2rem' }}
-                    >
-                      Start Round {boardState.roundNumber + 1}
-                    </button>
+                    <div style={{ fontSize: '0.9rem', opacity: 0.9 }}>
+                      Waiting for server to start the next round...
+                    </div>
                   </div>
                )}
 

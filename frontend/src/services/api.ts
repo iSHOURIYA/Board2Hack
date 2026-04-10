@@ -38,9 +38,9 @@ async function fetchWithAuth<T>(endpoint: string, options: RequestInit = {}): Pr
 
   if (!response.ok) {
     let errorMsg = 'An unexpected error occurred';
-    let details;
+    let details: Record<string, string> | undefined;
     try {
-      const errorData = await response.json();
+      const errorData = await response.json() as { message?: string; details?: Record<string, string> };
       errorMsg = errorData.message || errorMsg;
       details = errorData.details;
     } catch {
@@ -72,7 +72,7 @@ export const api = {
   
   rooms: {
     list: () => fetchWithAuth<ListRoomsResponse>('/api/v1/rooms'),
-    create: (data: Record<string, any>) => fetchWithAuth<CreateRoomResponse>('/api/v1/rooms', {
+    create: (data: Record<string, unknown>) => fetchWithAuth<CreateRoomResponse>('/api/v1/rooms', {
       method: 'POST',
       body: JSON.stringify(data)
     }),
@@ -82,7 +82,7 @@ export const api = {
     })
   },
   
-  matchmake: (data: Record<string, any>) => fetchWithAuth<MatchmakeResponse>('/api/v1/matchmake', {
+  matchmake: (data: Record<string, unknown>) => fetchWithAuth<MatchmakeResponse>('/api/v1/matchmake', {
     method: 'POST',
     body: JSON.stringify(data)
   })

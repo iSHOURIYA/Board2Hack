@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Switch, Route, Redirect } from 'wouter';
 import { useAuthStore } from './store/useAuthStore';
 import { api } from './services/api';
@@ -9,23 +9,18 @@ import './index.css';
 
 const App: React.FC = () => {
   const { isAuthenticated, profile, setProfile, logout } = useAuthStore();
-  const [loadingProfile, setLoadingProfile] = useState(isAuthenticated && !profile);
+  const loadingProfile = isAuthenticated && !profile;
 
   useEffect(() => {
-    if (isAuthenticated && !profile) {
-      api.profile()
-        .then(res => {
-          setProfile(res);
-        })
-        .catch(() => {
-          logout();
-        })
-        .finally(() => {
-          setLoadingProfile(false);
-        });
-    } else {
-      setLoadingProfile(false);
-    }
+    if (!isAuthenticated || profile) return;
+
+    api.profile()
+      .then(res => {
+        setProfile(res);
+      })
+      .catch(() => {
+        logout();
+      });
   }, [isAuthenticated, profile, setProfile, logout]);
 
   if (loadingProfile) {

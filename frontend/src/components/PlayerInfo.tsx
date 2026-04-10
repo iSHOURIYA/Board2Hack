@@ -9,6 +9,15 @@ interface Props {
 }
 
 export const PlayerInfo: React.FC<Props> = ({ boardState, myUserId, myUsername }) => {
+  const resolvePlayerName = (playerId: string) => {
+    if (playerId === myUserId) return `${myUsername} (You)`;
+    return (
+      boardState.usernames?.[playerId] ||
+      boardState.players[playerId]?.username ||
+      `Player ${playerId.substring(Math.max(0, playerId.length - 4))}`
+    );
+  };
+
   return (
     <div className="glass-panel" style={{ padding: '1.5rem', height: '100%' }}>
       <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -38,7 +47,7 @@ export const PlayerInfo: React.FC<Props> = ({ boardState, myUserId, myUsername }
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <User size={18} color={isCurrentTurn ? 'var(--accent-primary)' : 'var(--text-secondary)'} />
                 <span title={playerId} style={{ fontWeight: isMe ? 'bold' : 'normal', color: isCurrentTurn ? 'white' : 'var(--text-primary)' }}>
-                  {isMe ? `${myUsername} (You)` : `Player ${playerId.substring(Math.max(0, playerId.length - 4))}`}
+                  {resolvePlayerName(playerId)}
                 </span>
               </div>
               

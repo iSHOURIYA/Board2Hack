@@ -8,6 +8,7 @@ export interface RoomJoinedPayload {
 
 export interface PlayerState {
   playerId: string;
+  username?: string;
   secret?: SecretCards; // Might be hidden if not current player
   hand?: CardId[];      // Might be hidden if not current player
 }
@@ -17,6 +18,7 @@ export interface BoardState {
   roundNumber: number;
   currentPlayerId: string;
   playerOrder: string[];
+  usernames?: Record<string, string>;
   players: Record<string, PlayerState>;
   totemStack: TikiId[]; // 0 is top
   eliminatedTotems: TikiId[];

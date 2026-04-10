@@ -65,12 +65,28 @@ class SocketService {
   }
 
   // Listeners
-  on<Ev extends keyof ServerToClientEvents>(event: Ev, listener: ServerToClientEvents[Ev]) {
-    this.socket?.on(event, listener as any);
+  onRoomJoined(listener: ServerToClientEvents['room_joined']) {
+    this.socket?.on('room_joined', listener);
   }
 
-  off<Ev extends keyof ServerToClientEvents>(event: Ev, listener: ServerToClientEvents[Ev]) {
-    this.socket?.off(event, listener as any);
+  offRoomJoined(listener: ServerToClientEvents['room_joined']) {
+    this.socket?.off('room_joined', listener);
+  }
+
+  onStateUpdate(listener: ServerToClientEvents['state_update']) {
+    this.socket?.on('state_update', listener);
+  }
+
+  offStateUpdate(listener: ServerToClientEvents['state_update']) {
+    this.socket?.off('state_update', listener);
+  }
+
+  onErrorEvent(listener: ServerToClientEvents['error_event']) {
+    this.socket?.on('error_event', listener);
+  }
+
+  offErrorEvent(listener: ServerToClientEvents['error_event']) {
+    this.socket?.off('error_event', listener);
   }
 
   onConnect(listener: () => void) {
