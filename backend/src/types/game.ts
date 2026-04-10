@@ -31,6 +31,13 @@ export interface GameState {
   roundComplete: boolean;
   gameComplete: boolean;
   maxRounds: number;
+  lastCompletedRound?: number;
+  lastRoundScores?: Record<string, number>;
+  lastRoundTopThree?: number[];
+}
+
+export interface PublicGameState extends GameState {
+  playerMeta: Record<string, { username: string }>;
 }
 
 export interface PlayCardInput {

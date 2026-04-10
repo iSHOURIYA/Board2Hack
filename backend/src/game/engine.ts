@@ -19,6 +19,21 @@ const shuffle = <T>(arr: T[]): T[] => {
   return copy;
 };
 
+const deckForPlayerCount = (playerCount: number): CardType[] => {
+  if (playerCount === 2) {
+    return [...BASE_DECK];
+  }
+
+  let removed = false;
+  return BASE_DECK.filter((card) => {
+    if (!removed && card === "TIKI_UP_1") {
+      removed = true;
+      return false;
+    }
+    return true;
+  });
+};
+
 const nextPlayer = (state: GameState): string => {
   const idx = state.playerOrder.indexOf(state.currentPlayerId);
   return state.playerOrder[(idx + 1) % state.playerOrder.length];
@@ -42,6 +57,39 @@ const removeCardFromHand = (state: GameState, playerId: string, card: CardType):
   }
 
   hand.splice(idx, 1);
+};
+
+const ensureTikiCanMoveUpBy = (state: GameState, targetTikiId: number, spaces: number): void => {
+  const from = state.totemStack.indexOf(targetTikiId);
+  if (from === -1) {
+    throw new Error("Target tiki is not active.");
+  }
+
+  if (from < spaces) {
+    throw new Error(`TIKI_UP_${spaces} requires at least ${spaces} spaces above the target tiki.`);
+  }
+};
+
+const validateTargetForCard = (state: GameState, card: CardType, targetTikiId?: number): void => {
+  if (card === "TIKI_TOAST") {
+    return;
+  }
+
+  if (targetTikiId === undefined) {
+    throw new Error("Target tiki is required.");
+  }
+
+  if (card === "TIKI_UP_1") {
+    ensureTikiCanMoveUpBy(state, targetTikiId, 1);
+  }
+
+  if (card === "TIKI_UP_2") {
+    ensureTikiCanMoveUpBy(state, targetTikiId, 2);
+  }
+
+  if (card === "TIKI_UP_3") {
+    ensureTikiCanMoveUpBy(state, targetTikiId, 3);
+  }
 };
 
 const moveUpBy = (state: GameState, targetTikiId: number, spaces: number): void => {
@@ -108,17 +156,62 @@ const hasCardsLeft = (state: GameState): boolean => {
   return Object.values(state.players).some((player) => player.hand.length > 0);
 };
 
-const finalizeRound = (state: GameState): void => {
+const finalizeRound = (state: GameState): Record<string, number> => {
+  const roundScores: Record<string, number> = {};
+
   for (const playerId of state.playerOrder) {
     const roundScore = calculateRoundScore(state.totemStack, state.players[playerId].secret);
+    roundScores[playerId] = roundScore;
     state.scores[playerId] = (state.scores[playerId] ?? 0) + roundScore;
   }
 
-  state.roundComplete = true;
+  return roundScores;
+};
+
+const setupRound = (state: GameState): void => {
+  const totems = shuffle(Array.from({ length: 9 }, (_, idx) => idx + 1));
+  const deck = deckForPlayerCount(state.playerOrder.length);
+
+  state.totemStack = totems;
+  state.eliminatedTotems = [];
+  state.cardsPlayedCount = 0;
+  state.turnNumber = 1;
+  state.roundComplete = false;
+
+  const startingPlayerIndex = (state.roundNumber - 1) % state.playerOrder.length;
+  state.currentPlayerId = state.playerOrder[startingPlayerIndex];
+
+  for (const playerId of state.playerOrder) {
+    const secretPool = shuffle([...totems]);
+    state.players[playerId].secret = {
+      top: secretPool[0],
+      middle: secretPool[1],
+      bottom: secretPool[2]
+    };
+    state.players[playerId].hand = shuffle([...deck]);
+  }
 };
 
 const shouldEndRound = (state: GameState): boolean => {
   return state.totemStack.length <= 3 || !hasCardsLeft(state);
+};
+
+const resolveRound = (state: GameState): void => {
+  const completedRound = state.roundNumber;
+  const roundScores = finalizeRound(state);
+
+  state.lastCompletedRound = completedRound;
+  state.lastRoundScores = roundScores;
+  state.lastRoundTopThree = state.totemStack.slice(0, 3);
+
+  if (state.roundNumber >= state.maxRounds) {
+    state.roundComplete = true;
+    state.gameComplete = true;
+    return;
+  }
+
+  state.roundNumber += 1;
+  setupRound(state);
 };
 
 export const createInitialState = (roomId: string, playerIds: string[]): GameState => {
@@ -128,6 +221,7 @@ export const createInitialState = (roomId: string, playerIds: string[]): GameSta
 
   const totems = shuffle(Array.from({ length: 9 }, (_, idx) => idx + 1));
   const players: GameState["players"] = {};
+  const deck = deckForPlayerCount(playerIds.length);
 
   for (const playerId of playerIds) {
     const secretPool = shuffle([...totems]);
@@ -137,12 +231,10 @@ export const createInitialState = (roomId: string, playerIds: string[]): GameSta
       bottom: secretPool[2]
     };
 
-    const deck = playerIds.length === 2 ? [...BASE_DECK] : BASE_DECK.filter((c, i) => !(c === "TIKI_UP_1" && i === 0));
-
     players[playerId] = {
       playerId,
       secret,
-      hand: shuffle(deck)
+      hand: shuffle([...deck])
     };
   }
 
@@ -174,6 +266,7 @@ export const playCard = (state: GameState, input: PlayCardInput): MoveResult => 
   }
 
   ensurePlayerTurn(state, input.playerId);
+  validateTargetForCard(state, input.card, input.targetTikiId);
   removeCardFromHand(state, input.playerId, input.card);
 
   let removedTikiId: number | undefined;
@@ -196,6 +289,7 @@ export const playCard = (state: GameState, input: PlayCardInput): MoveResult => 
       topple(state, input.targetTikiId);
       break;
     case "TIKI_TOAST":
+      // Ignore targetTikiId for TIKI_TOAST and always remove the bottom tiki.
       removedTikiId = toastBottom(state);
       break;
     default:
@@ -205,7 +299,7 @@ export const playCard = (state: GameState, input: PlayCardInput): MoveResult => 
   state.cardsPlayedCount += 1;
 
   if (shouldEndRound(state)) {
-    finalizeRound(state);
+    resolveRound(state);
   } else {
     state.currentPlayerId = nextPlayer(state);
     state.turnNumber += 1;
