@@ -7,6 +7,7 @@ interface Props {
   selectedCard?: CardId;
   disabled: boolean;
   cardsPlayedCount: number;
+  justPlayedCard?: CardId;
 }
 
 const cardDescriptions: Record<string, string> = {
@@ -33,13 +34,14 @@ const cardGlyph: Record<CardId, string> = {
   TIKI_TOAST: '🔥'
 };
 
-export const PlayerHand: React.FC<Props> = ({ hand, onSelectCard, selectedCard, disabled, cardsPlayedCount }) => {
+export const PlayerHand: React.FC<Props> = ({ hand, onSelectCard, selectedCard, disabled, cardsPlayedCount, justPlayedCard }) => {
   return (
     <div className="card-hand-shell">
       <div className="card-hand-scroll">
       {hand.map((card, idx) => {
         const isToastRestricted = card === 'TIKI_TOAST' && cardsPlayedCount === 0;
         const cardDisabled = disabled || isToastRestricted;
+        const shouldPlayAnimate = justPlayedCard === card;
         
         return (
           <CardItem 
@@ -48,6 +50,7 @@ export const PlayerHand: React.FC<Props> = ({ hand, onSelectCard, selectedCard, 
             selected={selectedCard === card}
             disabled={cardDisabled}
             isToastRestricted={isToastRestricted}
+            played={shouldPlayAnimate}
             onClick={() => !cardDisabled && onSelectCard(card)}
           />
         );
@@ -62,8 +65,8 @@ export const PlayerHand: React.FC<Props> = ({ hand, onSelectCard, selectedCard, 
   );
 };
 
-const CardItem: React.FC<{ card: CardId, selected: boolean, disabled: boolean, isToastRestricted: boolean, onClick: () => void }> = ({ card, selected, disabled, isToastRestricted, onClick }) => {
-  const cardClass = `tiki-card ${selected ? 'selected' : ''} ${disabled ? 'disabled' : ''}`;
+const CardItem: React.FC<{ card: CardId, selected: boolean, disabled: boolean, isToastRestricted: boolean, played: boolean, onClick: () => void }> = ({ card, selected, disabled, isToastRestricted, played, onClick }) => {
+  const cardClass = `tiki-card ${selected ? 'selected' : ''} ${disabled ? 'disabled' : ''} ${played ? 'played' : ''}`;
   return (
     <div 
       onClick={onClick}

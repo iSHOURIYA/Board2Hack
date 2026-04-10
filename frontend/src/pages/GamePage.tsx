@@ -5,7 +5,7 @@ import { useGameStore } from '../store/useGameStore';
 import { useAuthStore } from '../store/useAuthStore';
 import type { CardId, TikiId } from '../types/game';
 import type { BoardState, RoomJoinedPayload, ErrorEventPayload } from '../types/socket';
-import { TotemStack } from '../components/TotemStack';
+import { BoardRenderer } from '../components/BoardRenderer';
 import { PlayerHand } from '../components/PlayerHand';
 import { PlayerInfo } from '../components/PlayerInfo';
 import { AlertCircle, Clock, Volume2, VolumeX } from 'lucide-react';
@@ -30,6 +30,7 @@ export const GamePage: React.FC = () => {
 
   const [selectedCard, setSelectedCard] = useState<CardId | undefined>();
   const [selectedTiki, setSelectedTiki] = useState<TikiId | undefined>();
+  const [justPlayedCard, setJustPlayedCard] = useState<CardId | undefined>();
   const [boardTilt, setBoardTilt] = useState({ x: 0, y: 0 });
   const { enabled: soundEnabled, toggle: toggleSound, play, ambient } = useSound();
 
@@ -63,6 +64,7 @@ export const GamePage: React.FC = () => {
   useEffect(() => {
     if (pendingMove) {
       play('cardPlay');
+      window.setTimeout(() => setJustPlayedCard(undefined), 350);
     }
   }, [pendingMove, play]);
 
@@ -132,6 +134,7 @@ export const GamePage: React.FC = () => {
     const targetTikiId = requiresTarget ? selectedTiki : undefined;
     const payload = { roomId, card: selectedCard, targetTikiId };
     socketService.playCard(payload);
+    setJustPlayedCard(selectedCard);
     setPendingMove(payload);
     setSelectedCard(undefined);
     setSelectedTiki(undefined);
@@ -171,7 +174,7 @@ export const GamePage: React.FC = () => {
     : '';
 
   return (
-    <div className="page-container">
+    <div className="page-container game-environment">
       {/* Header Info */}
       <div className="game-header-row">
         <h2 className="section-title" style={{ margin: 0 }}>Room: {roomId}</h2>
@@ -213,70 +216,52 @@ export const GamePage: React.FC = () => {
 
       {/* Active Game Phase */}
       {boardState && (
-        <div className="game-shell">
+        <div className="game-table-layout">
           
-          <div className="game-main">
-            {/* Board Area */}
+          <div className="board-zone-wrap">
             <div
               className="glass-panel board-panel"
               style={{
-                flex: 1,
                 padding: '2rem',
-                display: 'flex',
-                flexDirection: 'column',
                 overflow: 'hidden',
                 transform: `perspective(1100px) rotateX(${boardTilt.y}deg) rotateY(${boardTilt.x}deg)`,
               }}
               onMouseMove={handleBoardMouseMove}
               onMouseLeave={resetBoardTilt}
             >
-               {boardState.gameComplete && (
-                  <div style={{ textAlign:'center', backgroundColor: 'var(--accent-primary)', color: '#000', padding: '1rem', borderRadius: '8px', marginBottom: '2rem', fontWeight: 'bold' }}>
-                    Game Complete! Winner: {Object.keys(boardState.scores).reduce((a, b) => boardState.scores[a] > boardState.scores[b] ? a : b)}
-                  </div>
-               )}
-               {boardState.roundComplete && !boardState.gameComplete && (
-                  <div style={{ textAlign:'center', backgroundColor: 'var(--accent-secondary)', color: 'white', padding: '1rem', borderRadius: '8px', marginBottom: '2rem', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-                    <div>Round {boardState.roundNumber} Complete!</div>
-                    <div style={{ fontSize: '0.9rem', opacity: 0.9 }}>
-                      Waiting for server to start the next round...
-                    </div>
-                  </div>
-               )}
-
-              <TotemStack 
-                stack={boardState.totemStack} 
-                eliminated={boardState.eliminatedTotems}
+              <BoardRenderer
+                boardState={boardState}
                 selectedTiki={selectedTiki}
                 onSelectTiki={setSelectedTiki}
-                selectable={isMyTurn && !pendingMove}
-              />
-            </div>
-
-            {/* Hand & Actions */}
-            <div className="glass-panel" style={{ padding: '1.5rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h3 className="section-title" style={{ margin: 0 }}>Your Hand</h3>
-                <button 
-                  className="glass-button primary" 
-                  onClick={handlePlayCard}
-                  disabled={!isMyTurn || !!pendingMove || !selectedCard || (selectedCard !== 'TIKI_TOAST' && selectedTiki === undefined)}
-                >
-                  {pendingMove ? 'Playing...' : 'Play Card'}
-                </button>
-              </div>
-              <PlayerHand 
-                hand={myHand} 
-                selectedCard={selectedCard}
-                onSelectCard={setSelectedCard}
-                disabled={!isMyTurn || !!pendingMove}
-                cardsPlayedCount={boardState.cardsPlayedCount}
+                isMyTurn={!!isMyTurn}
+                hasPendingMove={!!pendingMove}
               />
             </div>
           </div>
 
-          <div>
+          <div className="player-side-column">
              <PlayerInfo boardState={boardState} myUserId={profile.id} myUsername={profile.username} />
+          </div>
+
+          <div className="card-dock">
+            <div className="card-dock-header">
+              <h3 className="section-title" style={{ margin: 0 }}>Your Hand</h3>
+              <button
+                className="tiki-btn"
+                onClick={handlePlayCard}
+                disabled={!isMyTurn || !!pendingMove || !selectedCard || (selectedCard !== 'TIKI_TOAST' && selectedTiki === undefined)}
+              >
+                {pendingMove ? 'Playing...' : 'Play Card'}
+              </button>
+            </div>
+            <PlayerHand
+              hand={myHand}
+              selectedCard={selectedCard}
+              onSelectCard={setSelectedCard}
+              disabled={!isMyTurn || !!pendingMove}
+              cardsPlayedCount={boardState.cardsPlayedCount}
+              justPlayedCard={justPlayedCard}
+            />
           </div>
         </div>
       )}
